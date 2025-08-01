@@ -1,6 +1,6 @@
 {
   "name": "markdown-to-wechat",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "将 Markdown 转换为适配微信公众号的 HTML",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

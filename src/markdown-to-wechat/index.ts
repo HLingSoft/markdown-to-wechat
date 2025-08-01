@@ -100,7 +100,7 @@ export function markdownToHtml(raw: string, options: RenderOptions): RenderResul
         }
     })
     const html = doc.getElementById('output')!.innerHTML
-    console.log('innerHTML', doc.getElementById('output')!.innerHTML)
+    // console.log('innerHTML', doc.getElementById('output')!.innerHTML)
     const fullPage = `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
