@@ -99,10 +99,51 @@ export function markdownToHtml(raw: string, options: RenderOptions): RenderResul
             level: Number(el.tagName.slice(1)),
         }
     })
+    const html = doc.getElementById('output')!.innerHTML
     console.log('innerHTML', doc.getElementById('output')!.innerHTML)
+    const fullPage = `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Markdown To Wechat</title>
 
+  <!-- Mermaid（需要前端激活） -->
+  <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+
+  <!-- 基础排版（可选，非主题色/hljs，不会与我们注入的冲突） -->
+  <style>
+    body {
+      margin: 0 auto;
+      padding: 20px;
+      max-width: 720px;
+      font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+      line-height: 1.75;
+      color: #333;
+      background: #fff;
+    }
+    h1,h2,h3,h4 { margin-top: 2em; margin-bottom: .5em; font-weight: 700; }
+    table { width: 100%; border-collapse: collapse; margin: 1em 0; }
+    th,td { border: 1px solid #e5e5e5; padding: .5em .75em; }
+  </style>
+</head>
+<body>
+  
+
+  <!-- 真正的渲染内容：内部已经注入了
+       1) :root { --md-primary-color: ... }
+       2) <link id="hljs" rel="stylesheet" href="...">  -->
+  <div class="md-container">
+    ${html}
+  </div>
+
+  <script>
+    // 前端激活 Mermaid（若文中含 mermaid 代码块）
+    mermaid.initialize({ startOnLoad: true });
+  </script>
+</body>
+</html>`
     return {
-        html: doc.getElementById('output')!.innerHTML,
+        html: fullPage,
         headings,
         readingTime: {
             chars: raw.length,
