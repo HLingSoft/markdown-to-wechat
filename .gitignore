@@ -1,0 +1,21 @@
+# 忽略依赖包
+node_modules
+
+# 忽略构建输出
+dist
+dist-test
+
+# 忽略 TypeScript 缓存
+*.tsbuildinfo
+
+# 忽略 VSCode 配置（如果不想共享）
+.vscode
+
+# 忽略历史记录（如使用了某些插件）
+.history
+
+# 忽略日志文件
+*.log
+
+# 忽略打包输出 HTML 预览等
+preview.html
