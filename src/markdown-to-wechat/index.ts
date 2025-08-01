@@ -3,7 +3,7 @@ import './setup-dom'
 import { JSDOM } from 'jsdom'
 
 import { initRenderer } from './utils/renderer'
-import { renderMarkdown, postProcessHtml } from './utils'
+import { renderMarkdown, postProcessHtml, processClipboardContent } from './utils'
 import { defaultTheme, themeMap } from './utils/theme'
 import { customizeTheme } from './utils/customizeTheme'
 
@@ -85,21 +85,24 @@ export function markdownToHtml(raw: string, options: RenderOptions): RenderResul
     })
 
     // 6) 用 jsdom 提取目录
-    const dom = new JSDOM(`<body>${finalHtml}</body>`)
+    const dom = new JSDOM(`<body><div id="output">${finalHtml}</div></body>`)
+
     const doc = dom.window.document
 
-    const headings = Array.from(doc.querySelectorAll<HTMLElement>('[data-heading]'))
-        .map((el, i) => {
-            el.id = String(i)
-            return {
-                url: `#${i}`,
-                title: el.textContent || '',
-                level: Number(el.tagName.slice(1)),
-            }
-        })
+    processClipboardContent(options.primaryColor || '', doc)
+
+    const headings = Array.from(doc.querySelectorAll<HTMLElement>('[data-heading]')).map((el, i) => {
+        el.id = String(i)
+        return {
+            url: `#${i}`,
+            title: el.textContent || '',
+            level: Number(el.tagName.slice(1)),
+        }
+    })
+    console.log('innerHTML', doc.getElementById('output')!.innerHTML)
 
     return {
-        html: doc.body.innerHTML,
+        html: doc.getElementById('output')!.innerHTML,
         headings,
         readingTime: {
             chars: raw.length,

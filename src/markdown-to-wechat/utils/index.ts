@@ -190,15 +190,6 @@ export function sanitizeTitle(title: string) {
   return safe || `untitled`
 }
 
-/**
- * 导出原始 Markdown 文档
- * @param {string} doc - 文档内容
- * @param {string} title - 文档标题
- */
-export function downloadMD(doc: string, title: string = `untitled`) {
-  const safeTitle = sanitizeTitle(title)
-  downloadFile(doc, `${safeTitle}.md`, `text/markdown;charset=utf-8`)
-}
 
 /**
  * 设置元素样式，确保导出时的样式正确
@@ -270,7 +261,7 @@ function setStyles(element: Element) {
  * @param {string} primaryColor - 主色调
  * @returns {string} 处理后的HTML字符串
  */
-function processHtmlContent(primaryColor: string): string {
+function processHtmlContent(primaryColor: string, document: Document): string {
   const element = document.querySelector(`#output`)!
   setStyles(element)
 
@@ -279,61 +270,21 @@ function processHtmlContent(primaryColor: string): string {
     .replace(/--md-primary-color:.+?;/g, ``)
 }
 
-/**
- * 导出 HTML 生成内容
- */
-export function exportHTML(primaryColor: string, title: string = `untitled`) {
-  const htmlStr = processHtmlContent(primaryColor)
-  const fullHtml = `<html><head><meta charset="utf-8" /></head><body><div style="width: 750px; margin: auto;">${htmlStr}</div></body></html>`
 
-  downloadFile(fullHtml, `${sanitizeTitle(title)}.html`, `text/html`)
-}
 
-export async function exportPureHTML(raw: string, title: string = `untitled`) {
-  const safeTitle = sanitizeTitle(title)
+// export async function exportPureHTML(raw: string, title: string = `untitled`) {
+//   const safeTitle = sanitizeTitle(title)
 
-  const marked = new Marked()
-  marked.use(markedAlert({ withoutStyle: true }))
-  marked.use(
-    MDKatex({ nonStandard: true }, ``, ``),
-  )
-  const pureHtml = await marked.parse(raw)
+//   const marked = new Marked()
+//   marked.use(markedAlert({ withoutStyle: true }))
+//   marked.use(
+//     MDKatex({ nonStandard: true }, ``, ``),
+//   )
+//   const pureHtml = await marked.parse(raw)
 
-  downloadFile(pureHtml, `${safeTitle}.html`, `text/html`)
-}
+//   // downloadFile(pureHtml, `${safeTitle}.html`, `text/html`)
+// }
 
-/**
- * 通用文件下载函数
- * @param content - 文件内容
- * @param filename - 文件名
- * @param mimeType - MIME 类型，默认为 text/plain
- */
-export function downloadFile(content: string, filename: string, mimeType: string = `text/plain`) {
-  const downLink = document.createElement(`a`)
-  downLink.download = filename
-  downLink.style.display = `none`
-
-  // 检查是否是 base64 data URL
-  if (content.startsWith(`data:`)) {
-    downLink.href = content
-  }
-  else if (mimeType === `text/html`) {
-    downLink.href = `data:text/html;charset=utf-8,${encodeURIComponent(content)}`
-  }
-  else {
-    const blob = new Blob([content], { type: mimeType })
-    downLink.href = URL.createObjectURL(blob)
-  }
-
-  document.body.appendChild(downLink)
-  downLink.click()
-  document.body.removeChild(downLink)
-
-  // 如果是 blob URL，释放内存
-  if (!content.startsWith(`data:`) && mimeType !== `text/html`) {
-    URL.revokeObjectURL(downLink.href)
-  }
-}
 
 /**
  * 根据数据生成 Markdown 表格
@@ -360,103 +311,6 @@ export function createTable({ data, rows, cols }: { data: { [k: string]: string 
   return table
 }
 
-export function toBase64(file: Blob) {
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader()
-    reader.readAsDataURL(file)
-    reader.onload = () => resolve((reader.result as string).split(`,`).pop()!)
-    reader.onerror = error => reject(error)
-  })
-}
-
-/**
- * 导出 PDF 文档
- * @param {string} primaryColor - 主色调
- * @param {string} title - 文档标题
- */
-export function exportPDF(primaryColor: string, title: string = `untitled`) {
-  const htmlStr = processHtmlContent(primaryColor)
-  const safeTitle = sanitizeTitle(title)
-
-  // 创建新窗口用于打印
-  const printWindow = window.open(``, `_blank`)
-  if (!printWindow) {
-    console.error(`无法打开打印窗口`)
-    return
-  }
-
-  // 写入HTML内容，包含自定义页眉页脚
-  printWindow.document.write(`
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <title>${safeTitle}</title>
-      <style>
-        @page {
-          @top-center {
-            content: "${safeTitle}";
-            font-size: 12px;
-            color: #666;
-          }
-          @bottom-left {
-            content: "微信 Markdown 编辑器";
-            font-size: 10px;
-            color: #999;
-          }
-          @bottom-right {
-            content: "第 " counter(page) " 页，共 " counter(pages) " 页";
-            font-size: 10px;
-            color: #999;
-          }
-        }
-        
-        @media print {
-          body { margin: 0; }
-        }
-      </style>
-    </head>
-    <body>
-      <div style="width: 100%; max-width: 750px; margin: auto;">
-        ${htmlStr}
-      </div>
-    </body>
-    </html>
-  `)
-
-  printWindow.document.close()
-
-  // 等待内容加载完成后自动打开打印对话框
-  printWindow.onload = () => {
-    printWindow.print()
-    // 打印完成后关闭窗口
-    printWindow.onafterprint = () => {
-      printWindow.close()
-    }
-  }
-}
-
-export function checkImage(file: File) {
-  // 检查文件名后缀
-  const isValidSuffix = /\.(?:gif|jpe?g|png)$/i.test(file.name)
-  if (!isValidSuffix) {
-    return {
-      ok: false,
-      msg: `请上传 JPG/PNG/GIF 格式的图片`,
-    }
-  }
-
-  // 检查文件大小
-  const maxSizeMB = 10
-  if (file.size > maxSizeMB * 1024 * 1024) {
-    return {
-      ok: false,
-      msg: `由于公众号限制，图片大小不能超过 ${maxSizeMB}M`,
-    }
-  }
-
-  return { ok: true, msg: `` }
-}
 
 /**
  * 移除左边多余空格
@@ -474,7 +328,7 @@ export function removeLeft(str: string) {
   return lines.map(item => item.slice(minSpaceNum)).join(`\n`)
 }
 
-export function solveWeChatImage() {
+export function solveWeChatImage(document: Document) {
   const clipboardDiv = document.getElementById(`output`)!
   const images = clipboardDiv.getElementsByTagName(`img`)
 
@@ -495,7 +349,7 @@ function mergeCss(html: string): string {
   })
 }
 
-function modifyHtmlStructure(htmlString: string): string {
+function modifyHtmlStructure(htmlString: string, document: Document): string {
   const tempDiv = document.createElement(`div`)
   tempDiv.innerHTML = htmlString
 
@@ -507,7 +361,7 @@ function modifyHtmlStructure(htmlString: string): string {
   return tempDiv.innerHTML
 }
 
-function createEmptyNode(): HTMLElement {
+function createEmptyNode(document: Document): HTMLElement {
   const node = document.createElement(`p`)
   node.style.fontSize = `0`
   node.style.lineHeight = `0`
@@ -516,11 +370,11 @@ function createEmptyNode(): HTMLElement {
   return node
 }
 
-export function processClipboardContent(primaryColor: string) {
-  const clipboardDiv = document.getElementById(`output`)!
+export function processClipboardContent(primaryColor: string, doc: Document) {
+  const clipboardDiv = doc.getElementById(`output`)!
 
   // 先合并 CSS 和修改 HTML 结构
-  clipboardDiv.innerHTML = modifyHtmlStructure(mergeCss(clipboardDiv.innerHTML))
+  clipboardDiv.innerHTML = modifyHtmlStructure(mergeCss(clipboardDiv.innerHTML), doc)
 
   // 处理样式和颜色变量
   clipboardDiv.innerHTML = clipboardDiv.innerHTML
@@ -539,11 +393,11 @@ export function processClipboardContent(primaryColor: string) {
     )
 
   // 处理图片大小
-  solveWeChatImage()
+  solveWeChatImage(doc)
 
   // 添加空白节点用于兼容 SVG 复制
-  const beforeNode = createEmptyNode()
-  const afterNode = createEmptyNode()
+  const beforeNode = createEmptyNode(doc)
+  const afterNode = createEmptyNode(doc)
   clipboardDiv.insertBefore(beforeNode, clipboardDiv.firstChild)
   clipboardDiv.appendChild(afterNode)
 
